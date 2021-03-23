@@ -1,3 +1,18 @@
+
+module Chess (
+    Color(..),
+    Piece(..),
+    PieceType(..),
+    Pos,
+    Board(..),
+    State(..),
+    Move(..),
+    makeMove,
+    legalMoves,
+    perft,
+    initialState
+) where
+
 import qualified Data.Map as Map
 import qualified Data.List as List
 
@@ -320,7 +335,9 @@ perft :: Int -> State -> Int
 perft 0 state = 1
 perft n state  = sum $ map (perft (n - 1) . makeMove state) $ legalMoves state
 
-initialState = State emptyBoard White [] Nothing
+initialState = State emptyBoard White [(1, 1), (8, 1), (1, 8), (8, 8)] Nothing
+
+
 
 main = do
      print $ perft 0 initialState
