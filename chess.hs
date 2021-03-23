@@ -73,7 +73,7 @@ enumLine piece start board (dx, dy) = step (next start)
 data Move = Jump Piece Pos Pos
           | Promotion Pos Pos Piece
           | Castle
-          | EnPassant
+          | EnPassant Piece Pos Pos Pos -- piece, start, destination, attacked position
           deriving (Eq, Show)
 
 applyMove :: Move -> Board -> Board
@@ -84,7 +84,9 @@ applyMove (Promotion src dst piece) board =
     Map.insert dst piece $ Map.delete src $ board
 
 applyMove (Castle) board = error "castle not implemented!"
-applyMove (EnPassant) board = error "en passant not implemented!"
+applyMove (EnPassant piece src dst attacked) board =
+    Map.insert dst piece $ Map.delete src $ Map.delete attacked $ board
+
 
 patternMoves :: [Offset] -> Piece -> Pos -> Board -> [Move]
 patternMoves pattern piece pos board =
@@ -107,10 +109,15 @@ promoteIfPossible (Jump piece@(Piece White Pawn) src dst@(_, 8)) =
 
 promoteIfPossible move = [move]
 
+isPawnOnStartRow :: Piece -> Pos -> Bool
+isPawnOnStartRow (Piece Black Pawn) (_, 7) = True
+isPawnOnStartRow (Piece White Pawn) (_, 2) = True
+isPawnOnStartRow _ _ = False
+
 pawnBoardMoves :: Piece -> Pos -> Board -> [Move]
 pawnBoardMoves piece start board =
     concatMap promoteIfPossible $
-        (step (x, y)) ++ (capture (x-1, y)) ++ (capture (x+1, y))
+        (step (x, y)) ++ (capture (x-1, y)) ++ (capture (x+1, y)) ++ (doublestep (x, y))
     where
         (x, y) = stepForward piece start
         step pos = case posType piece pos board of
@@ -119,6 +126,12 @@ pawnBoardMoves piece start board =
         capture pos = case posType piece pos board of
             Capture -> [Jump piece start pos]
             _       -> []
+        doublestep pos = if isPawnOnStartRow piece start
+            then
+                case step pos of
+                    []      -> []
+                    _       -> step $ stepForward piece pos
+            else []
 
 knightPattern =
     [(-2, 1), (-1, 2), (1, 2), (2, 1), (-2, -1), (-1, -2), (1, -2), (2, -1)]
@@ -204,12 +217,28 @@ makeMove (State board turn castle enPassant) move =
           []       -- TODO implement castle
           Nothing  -- TODO implement en passant
 
+enPassantAttackers :: Board -> Color -> Pos -> Pos -> [Move]
+enPassantAttackers board color attackedPos attackerPos =
+        case Map.lookup attackerPos board of
+            Just(piece@(Piece color' Pawn)) ->
+                if color' == color then [EnPassant piece attackerPos (stepForward piece attackedPos) attackedPos] else []
+            _ -> []
+
+enPassantMoves :: Color -> State -> [Move]
+enPassantMoves color state = case stateEnPassant state of
+    Nothing -> []
+    Just(attackedPos@(x, y)) -> (enpassantchecker attackedPos (x + 1, y)) ++ (enpassantchecker attackedPos (x - 1, y))
+    where
+        board = stateBoard state
+        enpassantchecker = enPassantAttackers board color
+
 legalMoves :: State -> [Move]
 legalMoves state =
     filter (not . checked color . stateBoard . makeMove state) moves
     where
         color = stateTurn state
         moves = allBoardMoves color (stateBoard state)
+                ++ enPassantMoves color state
 
 emptyBoard = Map.fromList (
     [((i, 8), Piece Black pieceType) | (i, pieceType) <- zip [1..8] order] ++
@@ -219,4 +248,17 @@ emptyBoard = Map.fromList (
     where
         order = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
+perft :: Int -> State -> Int
+perft 0 state = 1
+perft n state  = sum $ map (perft (n - 1) . makeMove state) $ legalMoves state
+
 initialState = State emptyBoard White [] Nothing
+
+main = do
+     putStrLn $ show $ perft 0 initialState
+     putStrLn $ show $ perft 1 initialState
+     putStrLn $ show $ perft 2 initialState
+     putStrLn $ show $ perft 3 initialState
+     putStrLn $ show $ perft 4 initialState
+     putStrLn $ show $ perft 5 initialState
+     putStrLn $ show $ perft 6 initialState
