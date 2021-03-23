@@ -127,10 +127,9 @@ pawnBoardMoves piece start board =
             Capture -> [Jump piece start pos]
             _       -> []
         doublestep pos = if isPawnOnStartRow piece start
-            then
-                case step pos of
-                    []      -> []
-                    _       -> step $ stepForward piece pos
+            then case step pos of
+                []      -> []
+                _       -> step $ stepForward piece pos
             else []
 
 knightPattern =
@@ -215,22 +214,33 @@ makeMove (State board turn castle enPassant) move =
     State (applyMove move board)
           (inv turn)
           []       -- TODO implement castle
-          Nothing  -- TODO implement en passant
+          enPassantPos
+    where
+        enPassantPos = case move of
+            Jump piece@(Piece _ Pawn) (x, y) dst@(x', y') ->
+                if abs (y' - y) == 2 then Just dst else Nothing
+            _  -> Nothing
 
 enPassantAttackers :: Board -> Color -> Pos -> Pos -> [Move]
 enPassantAttackers board color attackedPos attackerPos =
-        case Map.lookup attackerPos board of
-            Just(piece@(Piece color' Pawn)) ->
-                if color' == color then [EnPassant piece attackerPos (stepForward piece attackedPos) attackedPos] else []
-            _ -> []
+    case Map.lookup attackerPos board of
+        Just piece@(Piece color' Pawn) ->
+            if color' == color
+                then [EnPassant piece attackerPos
+                        (stepForward piece attackedPos) attackedPos]
+                else []
+        _ -> []
 
 enPassantMoves :: Color -> State -> [Move]
-enPassantMoves color state = case stateEnPassant state of
-    Nothing -> []
-    Just(attackedPos@(x, y)) -> (enpassantchecker attackedPos (x + 1, y)) ++ (enpassantchecker attackedPos (x - 1, y))
+enPassantMoves color state =
+    case stateEnPassant state of
+        Nothing -> []
+        Just attackedPos@(x, y) ->
+            (enpassantChecker attackedPos (x + 1, y)) ++
+            (enpassantChecker attackedPos (x - 1, y))
     where
         board = stateBoard state
-        enpassantchecker = enPassantAttackers board color
+        enpassantChecker = enPassantAttackers board color
 
 legalMoves :: State -> [Move]
 legalMoves state =
