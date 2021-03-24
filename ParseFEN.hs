@@ -36,7 +36,7 @@ parseFenBoard board = parse board 1 8
 parseFenTurn "w" = White
 parseFenTurn "b" = Black
 
-parseFenCastle str = map castlePos str
+parseFenCastle = map castlePos
     where castlePos 'K' = (8, 1)
           castlePos 'Q' = (1, 1)
           castlePos 'k' = (8, 8)
@@ -45,8 +45,9 @@ parseFenCastle str = map castlePos str
 parseFenEnPassant "-" = Nothing
 parseFenEnPassant pos = Just (parsePos pos)
 
+parseFen :: String -> State
 parseFen str =
-    let [board, turn, castle, enPassant, _, _] = words str
+    let board : turn : castle : enPassant : _ = words str
     in State (parseFenBoard board)
              (parseFenTurn turn)
              (parseFenCastle castle)

@@ -339,12 +339,3 @@ initialState = State emptyBoard White [(1, 1), (8, 1), (1, 8), (8, 8)] Nothing
 
 
 
-main = do
-     print $ perft 0 initialState
-     print $ perft 1 initialState
-     print $ perft 2 initialState
-     print $ perft 3 initialState
-     print $ perft 4 initialState
-     print $ perft 5 initialState
-     print $ perft 6 initialState
-     print $ perft 7 initialState
