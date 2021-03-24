@@ -10,7 +10,8 @@ module Chess (
     makeMove,
     legalMoves,
     perft,
-    initialState
+    initialState,
+    isValidMove
 ) where
 
 import qualified Data.Map as Map
@@ -251,6 +252,10 @@ updateCastleMovement (Jump _ pos1 _)               = List.delete pos1
 updateCastleMovement _                             = id
 
 
+isValidMove :: State -> Move -> Bool
+isValidMove state move = elem move $ legalMoves state
+
+-- asserts that move is valid
 makeMove :: State -> Move -> State
 makeMove (State board turn castle enPassant) move =
     State (applyMove move board)

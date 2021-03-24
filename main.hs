@@ -2,7 +2,21 @@ import ParseAN
 import qualified ParseFEN
 import Control.Monad
 import Chess
+import Control.Monad.Except
 
+
+printMoveError :: MoveError -> IO()
+printMoveError (ParserError e) = putStrLn $ "# ParserError: " ++ e
+printMoveError (LogicError e)  = putStrLn $ "# LogicError: " ++ e
+
+makeNextMove :: State -> IO State
+makeNextMove state =
+      let   ourMove = head $ legalMoves state
+            alteredState = makeMove state ourMove
+      in
+      do
+            putStrLn $ "move " ++ moveToAN ourMove
+            return alteredState
 
 reaction :: String -> State -> IO State
 reaction "xboard" state = do
@@ -10,14 +24,17 @@ reaction "xboard" state = do
       return state
 reaction "new" state    = do
       putStrLn "# Starting new Game."
+      putStrLn "# The program destroyes you!"
       return initialState
 reaction an state
   | isAN an = do
       putStrLn "# Executing move"
-      newstate <- applyANList state an
 
-reaction _ state        = do
-      putStrLn "# Unrecognized command."
+      case applyANList state an of
+            Left e -> do printMoveError e; return state
+            Right newstate -> makeNextMove newstate
+reaction command state        = do
+      putStrLn $ "Error (unknown command): " ++ command
       return state
 
 --    "new" -> do
