@@ -3,39 +3,54 @@ import qualified ParseFEN
 import Control.Monad
 import Chess
 import Control.Monad.Except
+import qualified Control.Monad.State.Lazy as SMonad
+import System.IO
 
 
-printMoveError :: MoveError -> IO()
-printMoveError (ParserError e) = putStrLn $ "# ParserError: " ++ e
-printMoveError (LogicError e)  = putStrLn $ "# LogicError: " ++ e
+data XBoardData = XBoardData {
+      xboardForces :: Bool,
+      xboardState :: State
+}
+type XBoardState = SMonad.StateT XBoardData IO
 
-makeNextMove :: State -> IO State
-makeNextMove state =
-      let   ourMove = head $ legalMoves state
-            alteredState = makeMove state ourMove
-      in
+
+printMoveError :: MoveError -> String -> IO()
+printMoveError (ParserError e) move = putStrLn $ "Illegal Move (" ++ e ++ "): " ++ move
+printMoveError (LogicError e)  move = putStrLn $ "Illegal Move (" ++ e ++ "): " ++ move
+
+println :: String -> XBoardState()
+println = lift . putStrLn
+
+getBoardState :: XBoardState State
+getBoardState = fmap xboardState SMonad.get
+
+makeNextMove :: XBoardState ()
+makeNextMove =
       do
-            putStrLn $ "move " ++ moveToAN ourMove
-            return alteredState
+            state <- getBoardState
+            let   ourMove = head $ legalMoves state
+                  alteredState = makeMove state ourMove
+            SMonad.modify (\x -> x {xboardState=alteredState})
+            println $ "move " ++ moveToAN ourMove
 
-reaction :: String -> State -> IO State
-reaction "xboard" state = do
-      putStrLn ""
-      return state
-reaction "new" state    = do
-      putStrLn "# Starting new Game."
-      putStrLn "# The program destroyes you!"
-      return initialState
-reaction an state
+reaction :: String -> XBoardState ()
+reaction "xboard" = do
+      println ""
+reaction "new"     = do
+      println "Starting new Game."
+      SMonad.put (XBoardData {xboardForces=False, xboardState=initialState})
+      println "The program destroyes you!"
+reaction an
   | isAN an = do
-      putStrLn "# Executing move"
-
+      println "# Executing move"
+      state <- getBoardState
       case applyANList state an of
-            Left e -> do printMoveError e; return state
-            Right newstate -> makeNextMove newstate
-reaction command state        = do
-      putStrLn $ "Error (unknown command): " ++ command
-      return state
+            Left e -> do lift $ printMoveError e an
+            Right newstate -> do
+                  SMonad.modify (\x -> x {xboardState=newstate})
+                  makeNextMove
+reaction command        = do
+      println $ "Error (unknown command): " ++ command
 
 --    "new" -> do
 --        putStrLn "Hello!"
@@ -48,14 +63,23 @@ reaction command state        = do
 
 
 
-loop :: State -> IO()
-loop state = do
-  line <- getLine
-  let dispatch = head $ words line
-  newstate <- reaction dispatch state
-  loop newstate
+loop :: XBoardState ()
+loop = do
+      line <- lift getLine
 
-main = loop initialState
+      let dispatch = head $ words line
+      -- putStrLn $ "Got dispatch keyword: " ++ dispatch
+      case dispatch of
+            "quit" -> return ()
+            dispatch -> do
+                  reaction dispatch
+                  loop
+
+main = do
+  putStrLn "Initializing engine..."
+  hSetBuffering stdout NoBuffering
+
+  SMonad.runStateT loop (XBoardData {xboardForces=False, xboardState=initialState})
 
 -- main = do
 --      print $ perft 0 initialState

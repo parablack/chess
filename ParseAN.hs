@@ -46,7 +46,7 @@ parseSingleAN board (x1 : y1 : x2 : y2 : promo) =
                     ""  -> findCorrespondingMove piece (xSrc, ySrc) (xDst, yDst)
                     "q" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Queen)
                     _   ->  throwError (ParserError "AN too long")
-            _ -> throwError (ParserError "Malformed AN, No figure on source square")
+            _ -> throwError (ParserError "Malformed AN or no figure on source square")
 
 
 
@@ -58,7 +58,7 @@ applyANList state  =
             move <- parseSingleAN (stateBoard state) w
             if isValidMove state move then
                 process (makeMove state move) ws
-            else throwError (LogicError "Move is invalid!")
+            else throwError (LogicError "Move is illegal on current board")
     in
         process state . words
 
