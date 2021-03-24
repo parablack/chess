@@ -4,7 +4,7 @@ import Control.Monad
 import Chess
 
 
-reaction :: String -> State -> IO(State)
+reaction :: String -> State -> IO State
 reaction "xboard" state = do
       putStrLn ""
       return state
@@ -14,10 +14,8 @@ reaction "new" state    = do
 reaction an state
   | isAN an = do
       putStrLn "# Executing move"
-      let newstate = applyANList state an
-      print $ perft 1 newstate
-      -- TODO answer
-      return $! newstate
+      newstate <- applyANList state an
+
 reaction _ state        = do
       putStrLn "# Unrecognized command."
       return state

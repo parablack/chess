@@ -10,20 +10,26 @@ import qualified Data.Map as Map
 import qualified Data.List as List
 import qualified Data.Char
 
+import Control.Monad.Except
 
-findCorrespondingMove :: Piece -> Pos -> Pos -> Move
-findCorrespondingMove piece src@(x, y) dst@(x', y') = case pieceType piece of
-    Pawn -> if abs (y - y') == 2 then DoubleJump piece src dst else Jump piece src dst
-    King -> if abs (x - x') == 2 then case x' of
-        7 -> Castle piece src dst (Piece (pieceColor piece) Rook) (8, y) (6, y)
-        3 -> Castle piece src dst (Piece (pieceColor piece) Rook) (1, y) (4, y)
-        _ -> error "Invalid castling destination or king moved 2 blocks"
-        else Jump piece src dst
-    _ -> Jump piece src dst
+newtype ParserError = ParserError String
+
+findCorrespondingMove :: Piece -> Pos -> Pos -> Either ParserError Move
+findCorrespondingMove piece src@(x, y) dst@(x', y') =
+    case pieceType piece of
+        Pawn -> if abs (y - y') == 2
+            then return $ DoubleJump piece src dst
+            else return $ Jump piece src dst
+        King -> if abs (x - x') == 2 then case x' of
+            7 -> return $ Castle piece src dst (Piece (pieceColor piece) Rook) (8, y) (6, y)
+            3 -> return $ Castle piece src dst (Piece (pieceColor piece) Rook) (1, y) (4, y)
+            _ -> throwError (ParserError "Invalid castling destination or king moved 2 blocks")
+            else return $ Jump piece src dst
+        _ -> return $ Jump piece src dst
 
 -- pieceTypeFromChar :: Char -> PieceType
 
-parseSingleAN :: Board -> String -> Move
+parseSingleAN :: Board -> String -> Either ParserError Move
 parseSingleAN board (x1 : y1 : x2 : y2 : promo) =
     let
         xSrc = Data.Char.ord x1 - Data.Char.ord 'a' + 1
@@ -35,18 +41,21 @@ parseSingleAN board (x1 : y1 : x2 : y2 : promo) =
             Just piece ->
                 case promo of
                     ""  -> findCorrespondingMove piece (xSrc, ySrc) (xDst, yDst)
-                    "q" -> Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Queen)
-                    _   ->  error "Parser Error (AN too long)"
-            _ -> error "Parser Error (no figure on source square)"
+                    "q" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Queen)
+                    _   ->  throwError (ParserError "AN too long")
+            _ -> throwError (ParserError "no figure on source square")
 
 
-applyANList :: State -> String -> State
-applyANList state "" = state
-applyANList state s =
+
+applyANList :: State -> String -> Either ParserError State
+applyANList state  =
     let
-        moves = words s
+        process state [] = return state
+        process state (w:ws) = do
+            move <- parseSingleAN (stateBoard state) w
+            process (makeMove state move) ws
     in
-        List.foldl (\state an -> makeMove state $ parseSingleAN (stateBoard state) an) state moves
+        process state . words
 
 serializePos :: Pos -> String
 serializePos (x, y) =
