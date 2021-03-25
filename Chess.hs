@@ -1,4 +1,3 @@
-
 module Chess (
     Color(..),
     Piece(..),
@@ -11,7 +10,9 @@ module Chess (
     legalMoves,
     perft,
     initialState,
-    isValidMove
+    isValidMove,
+    isChecked,
+    isCheckmate
 ) where
 
 import qualified Data.Map as Map
@@ -328,6 +329,12 @@ legalMoves state =
                 ++ enPassantMoves color state
                 ++ allCastlingMoves state
 
+isChecked :: State -> Bool
+isChecked state = checked (stateTurn state) (stateBoard state)
+
+isCheckmate :: State -> Bool  -- mflo approved
+isCheckmate state = isChecked state && legalMoves state == []
+
 emptyBoard = Map.fromList (
     [((i, 8), Piece Black pieceType) | (i, pieceType) <- zip [1..8] order] ++
     [((i, 7), Piece Black Pawn)      | i <- [1..8]                       ] ++
@@ -336,11 +343,28 @@ emptyBoard = Map.fromList (
     where
         order = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
 
+fperft :: (State -> Int) -> Int -> State -> Int
+fperft f n state
+    | n < 0  = 0
+    | n == 0 = f state
+    | n > 0  =
+        sum $ map (fperft f (n - 1) . makeMove state) $ legalMoves state
+
 perft :: Int -> State -> Int
-perft 0 state = 1
-perft n state  = sum $ map (perft (n - 1) . makeMove state) $ legalMoves state
+perft = fperft (const 1)
+
+perftChecked :: Int -> State -> Int
+perftChecked = fperft (\state -> if isChecked state then 1 else 0)
+
+perftCheckmate :: Int -> State -> Int
+perftCheckmate = fperft (\state -> if isCheckmate state then 1 else 0)
+
+perftEnPassant :: Int -> State -> Int
+perftEnPassant n =
+    let
+        countMove (EnPassant {}) = 1
+        countMove _              = 0
+    in
+        fperft (\state -> sum $ map countMove (legalMoves state)) (n - 1)
 
 initialState = State emptyBoard White [(1, 1), (8, 1), (1, 8), (8, 8)] Nothing
-
-
-
