@@ -143,7 +143,7 @@ isPawnOnStartRow _ _ = False
 pawnBoardMoves :: Piece -> Pos -> Board -> [Move]
 pawnBoardMoves piece start board =
     concatMap promoteIfPossible $
-        (step (x, y)) ++ (capture (x-1, y)) ++ (capture (x+1, y)) ++ (doublestep (x, y))
+        step (x, y) ++ capture (x-1, y) ++ capture (x+1, y) ++ doublestep (x, y)
     where
         color = pieceColor piece
         (x, y) = stepForward color start
@@ -201,26 +201,26 @@ linesAttacked color start board dirs isBad =
 
 pawnAttacked :: Color -> Pos -> Board -> Bool
 pawnAttacked color pos board  =
-    patternAttacked color next board pattern (==(Piece (inv color) Pawn))
+    patternAttacked color next board pattern (== Piece (inv color) Pawn)
     where
         next = stepForward color pos
         pattern = [(-1, 0), (1, 0)]
 
 boardAttacked :: Color -> Pos -> Board -> Bool
 boardAttacked color pos board =
-    patternAttacked color pos board knightPattern (==(Piece badcolor Knight))  ||
-    patternAttacked color pos board kingPattern   (==(Piece badcolor King))    ||
-    linesAttacked   color pos board rookLines     rookLike                  ||
-    linesAttacked   color pos board bishopLines   bishopLike                ||
+    patternAttacked color pos board knightPattern (== Piece badcolor Knight) ||
+    patternAttacked color pos board kingPattern   (== Piece badcolor King)   ||
+    linesAttacked   color pos board rookLines     rookLike                   ||
+    linesAttacked   color pos board bishopLines   bishopLike                 ||
     pawnAttacked    color pos board
     where
         badcolor = inv color
-        rookLike   (Piece color' Rook)  = (badcolor == color')
-        rookLike   (Piece color' Queen) = (badcolor == color')
-        rookLike   _                = False
-        bishopLike (Piece color' Bishop) = (badcolor == color')
-        bishopLike (Piece color' Queen)  = (badcolor == color')
-        bishopLike _                = False
+        rookLike   (Piece color' Rook)   = badcolor == color'
+        rookLike   (Piece color' Queen)  = badcolor == color'
+        rookLike   _                     = False
+        bishopLike (Piece color' Bishop) = badcolor == color'
+        bishopLike (Piece color' Queen)  = badcolor == color'
+        bishopLike _                     = False
 
 checked :: Color -> Board -> Bool
 checked color board =
