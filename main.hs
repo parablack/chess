@@ -34,33 +34,43 @@ initialXBoardData :: XBoardData
 initialXBoardData = XBoardData {xboardForces=False, xboardState=initialState}
 
 
-simpleMinMax :: Int -> State -> Int
-simpleMinMax 0 state = getScore (inv $ stateTurn state) state
-simpleMinMax depth state =
-      let
-            moves = legalMoves state
-      in
-            if null moves then
-                  -99999999
-            else
-                  moves |> map (negate . simpleMinMax (depth - 1) . makeMove state)
-                        |> maximum
+{-
+  Note: This is bad:
+  depth=4, fen="rnbqkbnr/pp2p1p1/8/3p1p1p/3B4/1P4P1/P1P1PPBP/RN1QK1NR b KQkq - 0 6"
+-}
 
-getMove :: State -> Move
-getMove state = legalMoves state
-            |>  map (\move -> (simpleMinMax 3 (makeMove state move), move))
-            -- |> map (\move -> (getScore (stateTurn state) (makeMove state move), move))
+simpleMinMax :: Int -> State -> (Int, [Move])
+simpleMinMax 0 state = (getScore (stateTurn state) state, [])
+simpleMinMax depth state =
+  let moves = legalMoves state
+   in if null moves
+        then -- if isInCheck 0> checkmate
+        -- else => stalemate
+          (-99999999, [])
+        else
+          moves
+            |> map
+              ( \move ->
+                  let (score, moves) = simpleMinMax (depth - 1) (makeMove state move)
+                   in (negate score, move : moves)
+              )
             |> maximum
-            |> snd
+
+getMove :: State -> Maybe Move
+getMove state = case snd (simpleMinMax 4 state) of
+                  (x : _) -> Just x
+                  [] -> Nothing
 
 makeNextMove :: XBoardState ()
 makeNextMove =
       do
             state <- get xboardState
-            let   ourMove = getMove state
-                  alteredState = makeMove state ourMove
-            SMonad.modify (\x -> x {xboardState=alteredState})
-            println $ "move " ++ moveToAN ourMove
+            case getMove state of
+                  Just ourMove -> do
+                                    let alteredState = makeMove state ourMove
+                                    SMonad.modify (\x -> x {xboardState=alteredState})
+                                    println $ "move " ++ moveToAN ourMove
+                  Nothing -> do println "offer draw"
 
 reaction :: [String] -> XBoardState ()
 reaction ["xboard"] = do

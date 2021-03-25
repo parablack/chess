@@ -18,6 +18,7 @@ module Chess (
 
 import qualified Data.Map as Map
 import qualified Data.List as List
+import qualified Data.Char as Char
 
 data Color = Black | White
   deriving (Eq, Show, Ord)
@@ -27,16 +28,28 @@ inv Black = White
 inv White = Black
 
 data PieceType = Pawn | Knight | Rook | Bishop | Queen | King
-    deriving (Eq, Show, Ord)
+    deriving (Eq, Ord)
+
+instance Show PieceType where
+    show Pawn = "P"
+    show Knight = "N"
+    show Rook = "R"
+    show Bishop = "B"
+    show Queen = "Q"
+    show King = "K"
 
 data Piece = Piece {
     pieceColor :: Color,
     pieceType  :: PieceType
-} deriving (Eq, Show, Ord)
+} deriving (Eq, Ord)
+
+instance Show Piece where
+    show (Piece White pieceType) = map Char.toUpper (show pieceType)
+    show (Piece Black pieceType) = map Char.toLower (show pieceType)
 
 type Pos = (Int, Int)
 type Offset = (Int, Int)
-type Board = Map.Map Pos Piece
+type Board = (Map.Map Pos Piece)
 
 {-
 
@@ -237,7 +250,20 @@ data State = State {
     stateTurn        :: Color,
     stateCastle      :: [Pos],      -- rook positions
     stateEnPassant   :: Maybe Pos
-} deriving (Eq, Show)
+} deriving (Eq)
+
+
+-- TODO: display is right but row, col is getting mixed up
+pieceAscii row col board = maybe " " show (Map.lookup (col, row) board)
+rowOfPices row board = concat [" " ++ pieceAscii row i board |i<-[1..8]]
+
+instance Show State where
+    show (State board turn _ _) = "Turn is " ++ show turn ++ "\n"
+                                    ++ "  +-----------------+\n"
+                                    ++ concat [show (9-i) ++ " |" ++ rowOfPices (9-i) board ++ " |\n"|i<-[1..8]]
+                                    ++ "  +-----------------+\n"
+                                    ++ "    a b c d e f g h"
+
 
 updateCastleCapture :: Move -> [Pos] -> [Pos]
 updateCastleCapture move rooks =
@@ -336,7 +362,7 @@ isChecked state = checked (stateTurn state) (stateBoard state)
 isCheckmate :: State -> Bool  -- mflo approved
 isCheckmate state = isChecked state && legalMoves state == []
 
-emptyBoard = Map.fromList (
+initialBoard = Map.fromList (
     [((i, 8), Piece Black pieceType) | (i, pieceType) <- zip [1..8] order] ++
     [((i, 7), Piece Black Pawn)      | i <- [1..8]                       ] ++
     [((i, 2), Piece White Pawn)      | i <- [1..8]                       ] ++
@@ -363,9 +389,9 @@ perftCheckmate = fperft (\state -> if isCheckmate state then 1 else 0)
 perftEnPassant :: Int -> State -> Int
 perftEnPassant n =
     let
-        countMove (EnPassant {}) = 1
-        countMove _              = 0
+        countMove EnPassant {} = 1
+        countMove _            = 0
     in
-        fperft (\state -> sum $ map countMove (legalMoves state)) (n - 1)
+        fperft (sum . map countMove . legalMoves) (n - 1)
 
-initialState = State emptyBoard White [(1, 1), (8, 1), (1, 8), (8, 8)] Nothing
+initialState = State initialBoard White [(1, 1), (8, 1), (1, 8), (8, 8)] Nothing

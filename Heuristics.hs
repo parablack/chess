@@ -1,5 +1,5 @@
 module Heuristics (
-    getScore
+    getScore,
 ) where
 
 import Chess

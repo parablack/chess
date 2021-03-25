@@ -17,6 +17,7 @@ import Control.Monad.Except
 data MoveError = ParserError String | LogicError String
 type Hopefully = Either MoveError
 
+-- FIXME: This needs the board to test for en passant
 findCorrespondingMove :: Piece -> Pos -> Pos -> Hopefully Move
 findCorrespondingMove piece src@(x, y) dst@(x', y') =
     case pieceType piece of
