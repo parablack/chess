@@ -1,11 +1,17 @@
 import ParseAN
 import qualified ParseFEN
+import Heuristics
 import Control.Monad
 import Chess
 import Control.Monad.Except
 import qualified Control.Monad.State.Lazy as SMonad
 import System.IO
+import Data.Maybe
 
+-- geklaut von Flow by flo
+infixl 0 |>
+(|>) :: a -> (a -> b) -> b
+x |> f = f x
 
 data XBoardData = XBoardData {
       xboardForces :: Bool,
@@ -27,11 +33,31 @@ get property = fmap property SMonad.get
 initialXBoardData :: XBoardData
 initialXBoardData = XBoardData {xboardForces=False, xboardState=initialState}
 
+
+simpleMinMax :: Int -> State -> Int
+simpleMinMax 0 state = getScore (inv $ stateTurn state) state
+simpleMinMax depth state =
+      let
+            moves = legalMoves state
+      in
+            if null moves then
+                  -99999999
+            else
+                  moves |> map (negate . simpleMinMax (depth - 1) . makeMove state)
+                        |> maximum
+
+getMove :: State -> Move
+getMove state = legalMoves state
+            |>  map (\move -> (simpleMinMax 3 (makeMove state move), move))
+            -- |> map (\move -> (getScore (stateTurn state) (makeMove state move), move))
+            |> maximum
+            |> snd
+
 makeNextMove :: XBoardState ()
 makeNextMove =
       do
             state <- get xboardState
-            let   ourMove = head $ legalMoves state
+            let   ourMove = getMove state
                   alteredState = makeMove state ourMove
             SMonad.modify (\x -> x {xboardState=alteredState})
             println $ "move " ++ moveToAN ourMove
@@ -41,7 +67,7 @@ reaction ["xboard"] = do
       println ""
 
 reaction ["new"] = do
-      println "Starting new Game."
+      println "Starting new Game 6969."
       SMonad.put initialXBoardData
       println "The program destroyes you!"
 

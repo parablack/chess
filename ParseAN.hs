@@ -87,7 +87,7 @@ typeToIdentifier Rook   = "r"
 moveToAN :: Move -> String
 moveToAN Jump{moveSrc=src,moveDst=dst}       = serialize2Pos src dst
 moveToAN DoubleJump{moveSrc=src,moveDst=dst} = serialize2Pos src dst
-moveToAN Castle{kingSrc=src,kingDst=dst}   = serialize2Pos src dst
+moveToAN Castle{kingSrc=src,kingDst=dst}     = serialize2Pos src dst
 moveToAN EnPassant{moveSrc=src,moveDst=dst}  = serialize2Pos src dst
 moveToAN Promotion{moveSrc=src,moveDst=dst,movePiece=piece}  =
     serialize2Pos src dst ++ typeToIdentifier (pieceType piece)

@@ -12,26 +12,27 @@ module Chess (
     initialState,
     isValidMove,
     isChecked,
-    isCheckmate
+    isCheckmate,
+    inv
 ) where
 
 import qualified Data.Map as Map
 import qualified Data.List as List
 
 data Color = Black | White
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 inv :: Color -> Color
 inv Black = White
 inv White = Black
 
 data PieceType = Pawn | Knight | Rook | Bishop | Queen | King
-    deriving (Eq, Show)
+    deriving (Eq, Show, Ord)
 
 data Piece = Piece {
     pieceColor :: Color,
     pieceType  :: PieceType
-} deriving (Eq, Show)
+} deriving (Eq, Show, Ord)
 
 type Pos = (Int, Int)
 type Offset = (Int, Int)
@@ -95,7 +96,7 @@ data Move = Jump {movePiece :: Piece, moveSrc :: Pos, moveDst :: Pos}
                     rookPiece :: Piece, rookSrc :: Pos, rookDst :: Pos}
           | EnPassant {movePiece :: Piece, moveSrc :: Pos, moveDst :: Pos, attackedPos :: Pos}
            -- piece, start, destination, attacked position
-          deriving (Eq, Show)
+          deriving (Eq, Show, Ord)
 
 applyMove :: Move -> Board -> Board
 applyMove (Jump piece src dst)  =
