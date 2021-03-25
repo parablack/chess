@@ -92,17 +92,38 @@ reaction ["usermove", an]
             Left e -> do lift $ printMoveError e an
             Right newstate -> do
                   SMonad.modify (\x -> x {xboardState=newstate})
-                  makeNextMove
+                  skipMove <- get xboardForces
+                  unless skipMove makeNextMove
+
   | otherwise = do
       println $ "Illegal Move (move is not in AN format) " ++ an
 
-reaction [command,  _]  = do
+reaction ["force"] = do
+      println "# Switching to forced mode"
+      SMonad.modify (\x -> x {xboardForces = True})
+
+reaction ["go"] = do
+      println "# Going!"
+      SMonad.modify (\x -> x {xboardForces = False})
+      makeNextMove
+
+reaction ["rejected", s] = do
+      println "# Thanks for nothing..."
+reaction ["accepted", _] = return ()
+reaction ["easy", _] = return ()
+reaction ["post", _] = return ()
+reaction ("level" : _) = do
+      println "# Timing control is unlucky"
+      return ()
+
+
+
+reaction (command : _)  = do
       println $ "Error (unknown command): " ++ command
 
 reaction [] = return ()
 
-reaction _  = do
-    println "# Not Implemented!"
+
 
 
 loop :: XBoardState ()
