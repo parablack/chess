@@ -19,13 +19,12 @@ type Hopefully = Either MoveError
 
 
 findCorrespondingMove :: Board -> Piece -> Pos -> Pos -> Hopefully Move
-findCorrespondingMove board piece@(Piece color Pawn) src@(x, y) dst@(x', y') =
-    if abs (y - y') == 2 then
-        return $ DoubleJump piece src dst
-    else
-        case posType color dst board of
-            Capture -> return $ Jump piece src dst
-            _       -> return $ EnPassant piece src dst (stepForward (inv color) dst)
+findCorrespondingMove board piece@(Piece color Pawn) src@(x, y) dst@(x', y')
+  | abs (y - y') == 2 = return $ DoubleJump piece src dst
+  | x == x'           = return $ Jump piece src dst
+  | otherwise         = case posType color dst board of
+                          Capture -> return $ Jump piece src dst
+                          _       -> return $ EnPassant piece src dst (stepForward (inv color) dst)
 
 findCorrespondingMove board piece@(Piece color King) src@(x, y) dst@(x', y') =
     if abs (x - x') == 2 then
