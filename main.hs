@@ -33,15 +33,18 @@ makeNextMove =
             SMonad.modify (\x -> x {xboardState=alteredState})
             println $ "move " ++ moveToAN ourMove
 
-reaction :: String -> XBoardState ()
-reaction "xboard" = do
+-- dispatch, first argument
+reaction :: String -> String -> XBoardState ()
+reaction "xboard"  _ = do
       println ""
-reaction "new"     = do
+reaction "new"     _ = do
       println "Starting new Game."
       SMonad.put (XBoardData {xboardForces=False, xboardState=initialState})
       println "The program destroyes you!"
-reaction an
-  | isAN an = do
+reaction "protover" "2" = do
+      println "feature usermove=1 sigint=0 sigterm=0 time=0 debug=1 done=1"
+reaction "usermove" an
+  | isAN an   = do
       println "# Executing move"
       state <- getBoardState
       case applyANList state an of
@@ -49,7 +52,8 @@ reaction an
             Right newstate -> do
                   SMonad.modify (\x -> x {xboardState=newstate})
                   makeNextMove
-reaction command        = do
+  | otherwise = println $ "Illegal Move (move is not in AN format) " ++ an
+reaction command  _  = do
       println $ "Error (unknown command): " ++ command
 
 --    "new" -> do
@@ -68,11 +72,12 @@ loop = do
       line <- lift getLine
 
       let dispatch = head $ words line
+      let arg = head $ tail $ words line
       -- putStrLn $ "Got dispatch keyword: " ++ dispatch
       case dispatch of
             "quit" -> return ()
             dispatch -> do
-                  reaction dispatch
+                  reaction dispatch arg
                   loop
 
 main = do

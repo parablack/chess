@@ -45,6 +45,9 @@ parseSingleAN board (x1 : y1 : x2 : y2 : promo) =
                 case promo of
                     ""  -> findCorrespondingMove piece (xSrc, ySrc) (xDst, yDst)
                     "q" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Queen)
+                    "r" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Rook)
+                    "b" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Bishop)
+                    "n" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Knight)
                     _   ->  throwError (ParserError "AN too long")
             _ -> throwError (ParserError "Malformed AN or no figure on source square")
 
@@ -72,12 +75,22 @@ serializePos (x, y) =
 serialize2Pos :: Pos -> Pos -> String
 serialize2Pos p1 p2 = serializePos p1 ++ serializePos p2
 
+
+typeToIdentifier :: PieceType -> String
+typeToIdentifier King = error "Promotion to King impossible"
+typeToIdentifier Pawn = error "Promotion to Pawn impossible"
+typeToIdentifier Queen  = "q"
+typeToIdentifier Knight = "n"
+typeToIdentifier Bishop = "b"
+typeToIdentifier Rook   = "r"
+
 moveToAN :: Move -> String
 moveToAN Jump{moveSrc=src,moveDst=dst}       = serialize2Pos src dst
 moveToAN DoubleJump{moveSrc=src,moveDst=dst} = serialize2Pos src dst
 moveToAN Castle{kingSrc=src,kingDst=dst}   = serialize2Pos src dst
 moveToAN EnPassant{moveSrc=src,moveDst=dst}  = serialize2Pos src dst
-moveToAN Promotion{moveSrc=src,moveDst=dst}  = serialize2Pos src dst ++ "q" -- TODO other pieces?
+moveToAN Promotion{moveSrc=src,moveDst=dst,movePiece=piece}  =
+    serialize2Pos src dst ++ typeToIdentifier (pieceType piece)
 
 isANChar :: Char -> Bool
 isANChar s = let ord = Data.Char.ord s in ord >= Data.Char.ord 'a' && ord <= Data.Char.ord 'h'
@@ -88,9 +101,11 @@ isANDigit s = let ord = Data.Char.ord s in ord >= Data.Char.ord '1' && ord <= Da
 isAN :: String -> Bool
 isAN (a:b:c:d:prom) = isANChar a && isANDigit b && isANChar c && isANDigit d &&
     case prom of
+        "" -> True
         "q" -> True
-        "Q" -> True
-        ""  -> True
+        "r" -> True
+        "b" -> True
+        "n"  -> True
         _   -> False
 isAN _ = False
 
