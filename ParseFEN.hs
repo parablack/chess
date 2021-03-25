@@ -36,11 +36,12 @@ parseFenBoard board = parse board 1 8
 parseFenTurn "w" = White
 parseFenTurn "b" = Black
 
-parseFenCastle = map castlePos
-    where castlePos 'K' = (8, 1)
-          castlePos 'Q' = (1, 1)
-          castlePos 'k' = (8, 8)
-          castlePos 'q' = (1, 8)
+parseFenCastle = concatMap castlePos
+    where castlePos 'K' = [(8, 1)]
+          castlePos 'Q' = [(1, 1)]
+          castlePos 'k' = [(8, 8)]
+          castlePos 'q' = [(1, 8)]
+          castlePos '-' = []
 
 parseFenEnPassant "-" = Nothing
 parseFenEnPassant pos = Just (parsePos pos)
