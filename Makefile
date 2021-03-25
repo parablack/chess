@@ -9,5 +9,6 @@ test: *.hs
 clean:
 	rm -fv *.o *.hi main tests
 
+.PHONY: watch
 watch:
 	fd -e hs | entr make
