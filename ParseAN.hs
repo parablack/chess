@@ -17,19 +17,27 @@ import Control.Monad.Except
 data MoveError = ParserError String | LogicError String
 type Hopefully = Either MoveError
 
--- FIXME: This needs the board to test for en passant
-findCorrespondingMove :: Piece -> Pos -> Pos -> Hopefully Move
-findCorrespondingMove piece src@(x, y) dst@(x', y') =
-    case pieceType piece of
-        Pawn -> if abs (y - y') == 2
-            then return $ DoubleJump piece src dst
-            else return $ Jump piece src dst
-        King -> if abs (x - x') == 2 then case x' of
-            7 -> return $ Castle piece src dst (Piece (pieceColor piece) Rook) (8, y) (6, y)
-            3 -> return $ Castle piece src dst (Piece (pieceColor piece) Rook) (1, y) (4, y)
+
+findCorrespondingMove :: Board -> Piece -> Pos -> Pos -> Hopefully Move
+findCorrespondingMove board piece@(Piece color Pawn) src@(x, y) dst@(x', y') =
+    if abs (y - y') == 2 then
+        return $ DoubleJump piece src dst
+    else
+        case posType color dst board of
+            Capture -> return $ Jump piece src dst
+            _       -> return $ EnPassant piece src dst (stepForward (inv color) dst)
+
+findCorrespondingMove board piece@(Piece color King) src@(x, y) dst@(x', y') =
+    if abs (x - x') == 2 then
+        case x' of
+            7 -> return $ Castle piece src dst (Piece color Rook) (8, y) (6, y)
+            3 -> return $ Castle piece src dst (Piece color Rook) (1, y) (4, y)
             _ -> throwError (LogicError "Invalid castling destination or king moved 2 blocks")
-            else return $ Jump piece src dst
-        _ -> return $ Jump piece src dst
+    else
+        return $ Jump piece src dst
+
+findCorrespondingMove board piece src dst =
+     return $ Jump piece src dst
 
 -- pieceTypeFromChar :: Char -> PieceType
 
@@ -44,14 +52,13 @@ parseSingleAN board (x1 : y1 : x2 : y2 : promo) =
         case Map.lookup (xSrc, ySrc) board of
             Just piece ->
                 case promo of
-                    ""  -> findCorrespondingMove piece (xSrc, ySrc) (xDst, yDst)
+                    ""  -> findCorrespondingMove board piece (xSrc, ySrc) (xDst, yDst)
                     "q" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Queen)
                     "r" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Rook)
                     "b" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Bishop)
                     "n" -> return $ Promotion (xSrc, ySrc) (xDst, yDst) (Piece (pieceColor piece) Knight)
                     _   ->  throwError (ParserError "AN too long")
             _ -> throwError (ParserError "Malformed AN or no figure on source square")
-
 
 
 applyANList :: State -> String -> Hopefully State
@@ -94,9 +101,12 @@ moveToAN Promotion{moveSrc=src,moveDst=dst,movePiece=piece}  =
     serialize2Pos src dst ++ typeToIdentifier (pieceType piece)
 
 isANChar :: Char -> Bool
-isANChar s = let ord = Data.Char.ord s in ord >= Data.Char.ord 'a' && ord <= Data.Char.ord 'h'
+isANChar s = let ord = Data.Char.ord s
+             in ord >= Data.Char.ord 'a' && ord <= Data.Char.ord 'h'
+
 isANDigit :: Char -> Bool
-isANDigit s = let ord = Data.Char.ord s in ord >= Data.Char.ord '1' && ord <= Data.Char.ord '8'
+isANDigit s = let ord = Data.Char.ord s
+              in ord >= Data.Char.ord '1' && ord <= Data.Char.ord '8'
 
 
 isAN :: String -> Bool
@@ -109,7 +119,3 @@ isAN (a:b:c:d:prom) = isANChar a && isANDigit b && isANChar c && isANDigit d &&
         "n"  -> True
         _   -> False
 isAN _ = False
-
-kiwipepe = "e2e4 h7h5 d2d4 h5h4 d4d5 h4h3 d1f3 g7g6 f1e2 f8g7 c1d2 e7e6 f3e3 g8f6 g1f3 g7f8 f3e5 f8g7 b1c3 b7b5 e2f1 b5b4 f1e2 b8c6 e2f1 c6a5 f1e2 a5c4 e2f1 c4b6 f1e2 c8a6 e2f1 d8e7 f1e2 a6c8 e2f1 c8b7 f1e2 b7a6 e3g3 a6b7 g3f3 b7a6"
-
-kiwipepestate = applyANList initialState kiwipepe

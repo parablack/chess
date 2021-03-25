@@ -21,13 +21,13 @@ testPosition string tests =
 
 testInitialPosition = testPosition
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    [(0, 1), (1, 20), (2, 400), (3, 8902), (4, 197281), (5, 4865609)]
-    -- (5, 119060324) (6, 3195901860)
+    [(0, 1), (1, 20), (2, 400), (3, 8902), (4, 197281)]
+    -- (5, 4865609), (5, 119060324) (6, 3195901860)
 
 testPosition2 = testPosition
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -"
-    [(1, 48), (2, 2039), (3, 97862), (4, 4085603)]
-    -- (5, 193690690) (6, 8031647685)
+    [(1, 48), (2, 2039), (3, 97862)]
+    -- (4, 4085603) (5, 193690690) (6, 8031647685)
 
 testPosition3 = testPosition
     "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -"
@@ -41,13 +41,13 @@ testPosition4 = testPosition
 
 testPosition5 = testPosition
     "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8"
-    [(1, 44), (2, 1486), (3, 62379), (4, 2103487)]
-    -- (5, 89941194)
+    [(1, 44), (2, 1486), (3, 62379)]
+    -- (4, 2103487) (5, 89941194)
 
 testPosition6 = testPosition
     "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10"
-    [(0, 1), (1, 46), (2, 2079), (3, 89890), (4, 3894594)]
-    -- (5, 164075551), (6, 6923051137) (7, 287188994746)
+    [(0, 1), (1, 46), (2, 2079), (3, 89890)]
+    -- (4, 3894594) (5, 164075551), (6, 6923051137) (7, 287188994746)
 
 main = do
     testInitialPosition
@@ -56,3 +56,7 @@ main = do
     testPosition4
     testPosition5
     testPosition6
+
+
+-- kiwipepe = "e2e4 h7h5 d2d4 h5h4 d4d5 h4h3 d1f3 g7g6 f1e2 f8g7 c1d2 e7e6 f3e3 g8f6 g1f3 g7f8 f3e5 f8g7 b1c3 b7b5 e2f1 b5b4 f1e2 b8c6 e2f1 c6a5 f1e2 a5c4 e2f1 c4b6 f1e2 c8a6 e2f1 d8e7 f1e2 a6c8 e2f1 c8b7 f1e2 b7a6 e3g3 a6b7 g3f3 b7a6"
+-- kiwipepestate = applyANList initialState kiwipepe

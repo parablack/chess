@@ -6,6 +6,7 @@ module Chess (
     Board(..),
     State(..),
     Move(..),
+    PosType(..),
     makeMove,
     legalMoves,
     perft,
@@ -13,7 +14,9 @@ module Chess (
     isValidMove,
     isChecked,
     isCheckmate,
-    inv
+    inv,
+    stepForward,
+    posType
 ) where
 
 import qualified Data.Map as Map
