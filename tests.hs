@@ -4,8 +4,8 @@ import ParseFEN
 -- https://www.chessprogramming.org/Perft_Results
 
 assertPerft state depth num
-    | result == num = putStrLn $ "Test Passed! " ++ (show num)
-    | result /= num = putStrLn $ "Test Failed! " ++ (show num) ++ " /= " ++ (show result)
+    | result == num = putStrLn $ "Test Passed! " ++ show num
+    | result /= num = putStrLn $ "Test Failed! " ++ show num ++ " /= " ++ show result
     where result = perft depth state
 
 testPosition string tests =

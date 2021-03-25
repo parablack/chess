@@ -66,7 +66,7 @@ reaction [command,  _]  = do
 reaction [] = return ()
 
 reaction _  = do
-    println $ "# Not Implemented!"
+    println "# Not Implemented!"
 
 
 loop :: XBoardState ()
