@@ -66,6 +66,10 @@ impl Score {
     pub fn very_bad() -> Self {
         Score(i32::MIN / 4)
     }
+
+    pub fn is_decided(&self) -> bool {
+        self.0 < i32::MIN / 8 || self.0 > i32::MAX / 8
+    }
 }
 
 fn weight_pieces(board: Board, mask: BitBoard, flip: bool) -> i32 {
@@ -120,6 +124,9 @@ pub fn evaluate(board: Board, aux_state: AuxState) -> Score {
         *board.color_combined(!board.side_to_move()),
         board.side_to_move() != Color::Black,
     );
+
+    score += (board.pinned() & board.color_combined(!board.side_to_move())).popcnt() as i32 * 9;
+    score -= (board.pinned() & board.color_combined(board.side_to_move())).popcnt() as i32 * 9;
 
     if board.my_castle_rights().has_queenside() {
         score += 40;
