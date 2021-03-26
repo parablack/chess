@@ -1,4 +1,4 @@
-use chess::{BitBoard, Board, ChessMove, Color, File, Piece, NUM_COLORS};
+use chess::{BitBoard, Board, BoardStatus, ChessMove, Color, File, Piece, NUM_COLORS};
 use smallvec::SmallVec;
 
 use crate::piece_tables::*;
@@ -54,8 +54,17 @@ impl Score {
     pub fn flip(&self) -> Self {
         Score(-self.0)
     }
+
+    pub fn best() -> Self {
+        Score(i32::MAX / 2)
+    }
+
     pub fn worst() -> Self {
         Score(i32::MIN / 2)
+    }
+
+    pub fn very_bad() -> Self {
+        Score(i32::MIN / 4)
     }
 }
 
@@ -68,7 +77,7 @@ fn weight_pieces(board: Board, mask: BitBoard, flip: bool) -> i32 {
     let kings = board.pieces(Piece::King) & mask;
     let base_score = (pawns.popcnt() * 100
         + knights.popcnt() * 300
-        + bishops.popcnt() * 301
+        + bishops.popcnt() * 311
         + rooks.popcnt() * 500
         + queens.popcnt() * 900) as i32;
     let piece_table_score = weight_piece_positions(pawns, &TABLE_PAWN, flip)
@@ -92,6 +101,16 @@ fn weight_piece_positions(mut mask: BitBoard, table: &PieceTable, flip: bool) ->
 }
 
 pub fn evaluate(board: Board, aux_state: AuxState) -> Score {
+    match board.status() {
+        BoardStatus::Stalemate => {
+            return Score(0);
+        }
+        BoardStatus::Checkmate => {
+            return Score::very_bad();
+        }
+        BoardStatus::Ongoing => {}
+    }
+
     let mut score = weight_pieces(
         board,
         *board.color_combined(board.side_to_move()),
@@ -103,11 +122,11 @@ pub fn evaluate(board: Board, aux_state: AuxState) -> Score {
     );
 
     if board.my_castle_rights().has_queenside() {
-        score += 50;
+        score += 40;
     }
 
     if aux_state.has_castled_ooo[board.side_to_move().to_index()] {
-        score += 100;
+        score += 80;
     }
 
     Score(score)
