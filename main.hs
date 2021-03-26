@@ -46,7 +46,10 @@ simpleMinMax depth state =
    in if null moves
         then -- if isInCheck 0> checkmate
         -- else => stalemate
-          (-99999999, [])
+            if checked (stateTurn state) (stateBoard state) then
+            (-100000, [])
+            else
+            (0, [])
         else
           moves
             |> map
@@ -56,8 +59,40 @@ simpleMinMax depth state =
               )
             |> maximum
 
+
+alphaBeta :: Int -> State -> Int -> Int -> (Int, [Move])
+alphaBeta 0 state _ _ = (getScore (stateTurn state) state, [])
+alphaBeta depth state alpha beta =
+  let moves = legalMoves state
+   in if null moves
+        then -- if isInCheck 0> checkmate
+        -- else => stalemate
+            if checked (stateTurn state) (stateBoard state) then
+            (-100000, [])
+            else
+            (0, [])
+        else let
+              loop (move : otherMoves) maxWert =
+                  let (nscore, moves) = alphaBeta (depth - 1) (makeMove state move) (-beta) (-maxWert)
+                      score = negate nscore
+                      thisMove = (score, move : moves)
+                  in
+                  if score > maxWert then
+                        if maxWert >= beta then
+                              thisMove
+                        else
+                              let otherBestMove@(otherScore, _) = loop otherMoves score
+                              in if otherScore > score then otherBestMove else thisMove
+                  else
+                        loop otherMoves maxWert
+              loop [] maxWert = (-100000000, [])
+             in
+                  loop moves alpha
+
+
+
 getMove :: State -> Maybe Move
-getMove state = case snd (simpleMinMax 4 state) of
+getMove state = case snd (alphaBeta 5 state (-100000000) 100000000) of
                   (x : _) -> Just x
                   [] -> Nothing
 

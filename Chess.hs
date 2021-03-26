@@ -16,7 +16,8 @@ module Chess (
     isCheckmate,
     inv,
     stepForward,
-    posType
+    posType,
+    checked
 ) where
 
 import qualified Data.Map as Map
